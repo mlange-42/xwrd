@@ -2,16 +2,23 @@ package anagram
 
 import (
 	"fmt"
+	"strings"
 	"unicode"
+	"unicode/utf8"
 )
+
+var replacer = strings.NewReplacer(" ", "", "-", "")
 
 // Tree is an anagram tree
 type Tree struct {
 	Root       *Node
-	Leaves     [][]string
+	Leaves     []Leaf
 	Letters    []rune
 	LettersMap map[rune]int
 }
+
+// Leaf is a tree leaf
+type Leaf []string
 
 // NewTree creates a new Tree
 func NewTree(letters []rune) Tree {
@@ -23,26 +30,163 @@ func NewTree(letters []rune) Tree {
 	root := NewNode(letters[0], -1)
 	return Tree{
 		Root:       &root,
-		Leaves:     make([][]string, 0, 0),
+		Leaves:     make([]Leaf, 0, 0),
 		Letters:    letters,
 		LettersMap: lettersMap,
 	}
 }
 
-// FindAnagrams finds full anagrams
-func (t *Tree) FindAnagrams(word string) []string {
-	result := make([]int, len(t.Letters), len(t.Letters))
-	Histogram(word, t.LettersMap, result)
+// Anagrams finds full anagrams
+func (t *Tree) Anagrams(word string) Leaf {
+	word = replacer.Replace(word)
 
+	hist := make([]int, len(t.Letters), len(t.Letters))
+	Histogram(word, t.LettersMap, false, hist)
+
+	if idx, ok := t.anagrams(hist); ok {
+		return t.Leaves[idx]
+	}
+	return Leaf{}
+}
+
+func (t *Tree) anagrams(hist []int) (int, bool) {
 	node := t.Root
-	for _, cnt := range result {
+	for _, cnt := range hist {
 		child, ok := node.GetChild(cnt)
 		if !ok {
-			return []string{}
+			return -1, false
 		}
 		node = child
 	}
-	return t.Leaves[node.Leaf]
+	return node.Leaf, true
+}
+
+// PartialAnagrams finds partial anagrams
+func (t *Tree) PartialAnagrams(word string) []Leaf {
+	word = replacer.Replace(word)
+
+	hist := make([]int, len(t.Letters), len(t.Letters))
+	Histogram(word, t.LettersMap, false, hist)
+
+	indices := t.partialAnagrams(hist)
+	results := make([]Leaf, len(indices), len(indices))
+	for i, idx := range indices {
+		results[i] = t.Leaves[idx]
+	}
+
+	return results
+}
+
+func (t *Tree) partialAnagrams(hist []int) []int {
+	results := []int{}
+
+	open := []*Node{t.Root}
+	for _, cnt := range hist {
+		newOpen := []*Node{}
+
+		for _, o := range open {
+			for i, child := range o.Children {
+				if i > cnt {
+					break
+				}
+				if child == nil {
+					continue
+				}
+				newOpen = append(newOpen, child)
+			}
+		}
+		open = newOpen
+	}
+
+	for _, o := range open {
+		results = append(results, o.Leaf)
+	}
+
+	return results
+}
+
+// MultiAnagrams finds combinations of partial anagrams
+func (t *Tree) MultiAnagrams(word string) [][]Leaf {
+	word = replacer.Replace(word)
+
+	hist := make([]int, len(t.Letters), len(t.Letters))
+	Histogram(word, t.LettersMap, false, hist)
+
+	tree, indices := t.multiAnagrams(hist)
+
+	results := make([][]Leaf, len(indices), len(indices))
+	for i, ind := range indices {
+		row := make([]Leaf, len(ind), len(ind))
+		for j, leaf := range ind {
+			row[j] = tree.Leaves[leaf]
+		}
+		results[i] = row
+	}
+
+	return results
+}
+
+func (t *Tree) multiAnagrams(hist []int) (*Tree, [][]int) {
+	totalLen := 0
+	for _, c := range hist {
+		totalLen += c
+	}
+
+	partials := t.partialAnagrams(hist)
+
+	tree := NewTree(t.Letters)
+	for _, p := range partials {
+		tree.AddWords(t.Leaves[p])
+	}
+
+	open := [][]int{}
+	closed := [][]int{}
+
+	for i, p := range tree.Leaves {
+		if utf8.RuneCountInString(p[0]) == totalLen {
+			closed = append(closed, []int{i})
+		} else {
+			open = append(open, []int{i})
+		}
+	}
+
+	tempHist := make([]int, len(hist), len(hist))
+	for len(open) > 0 {
+		curr := open[0]
+		open = open[1:]
+
+		for i := 0; i < len(tempHist); i++ {
+			tempHist[i] = hist[i]
+		}
+
+		strLen := 0
+		for _, c := range curr {
+			str := tree.Leaves[c][0]
+			strLen += utf8.RuneCountInString(str)
+			Histogram(str, t.LettersMap, true, tempHist)
+		}
+
+		subPartials := tree.partialAnagrams(tempHist)
+
+		if len(subPartials) == 0 {
+			continue
+		}
+
+		for _, sub := range subPartials {
+			new := []int{}
+			new = append(new, curr...)
+			new = append(new, sub)
+
+			str := tree.Leaves[sub][0]
+			if strLen+utf8.RuneCountInString(str) == totalLen {
+				closed = append(closed, new)
+			} else {
+				open = append(open, new)
+			}
+		}
+	}
+
+	return &tree, closed
 }
 
 // AddWords adds words to the tree
@@ -50,10 +194,14 @@ func (t *Tree) AddWords(words []string) {
 	result := make([]int, len(t.Letters), len(t.Letters))
 
 	for _, word := range words {
+		if len(word) == 0 {
+			continue
+		}
+
 		for i := 0; i < len(result); i++ {
 			result[i] = 0
 		}
-		Histogram(word, t.LettersMap, result)
+		Histogram(word, t.LettersMap, false, result)
 
 		node := t.Root
 		for i, cnt := range result {
