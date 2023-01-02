@@ -136,7 +136,7 @@ func (t *Tree) multiAnagrams(hist []int, maxWords int, perm bool) (*Tree, [][]in
 
 	tree := NewTree(t.Letters)
 	for _, p := range partials {
-		tree.AddWords(t.Leaves[p])
+		tree.AddWords(t.Leaves[p], nil)
 	}
 
 	open := [][]int{}
@@ -199,10 +199,17 @@ func (t *Tree) multiAnagrams(hist []int, maxWords int, perm bool) (*Tree, [][]in
 }
 
 // AddWords adds words to the tree
-func (t *Tree) AddWords(words []string) {
+func (t *Tree) AddWords(words []string, progress chan int) {
+	if progress != nil {
+		defer close(progress)
+	}
+
+	numWords := len(words)
+	prog := 0
+
 	result := make([]int, len(t.Letters), len(t.Letters))
 
-	for _, word := range words {
+	for w, word := range words {
 		if len(word) == 0 {
 			continue
 		}
@@ -239,6 +246,15 @@ func (t *Tree) AddWords(words []string) {
 				t.Leaves[node.Leaf] = append(t.Leaves[node.Leaf], word)
 			}
 		}
+
+		p := (100 * w) / numWords
+		if progress != nil && p > prog {
+			progress <- p
+			prog = p
+		}
+	}
+	if progress != nil {
+		progress <- 100
 	}
 }
 

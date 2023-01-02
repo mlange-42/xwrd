@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/mlange-42/xwrd/anagram"
@@ -27,8 +28,6 @@ func anagramCommand() *cobra.Command {
 				return
 			}
 
-			text := strings.Join(args, " ")
-
 			tree := anagram.NewTree([]rune(anagram.Letters))
 			fileContent, err := ioutil.ReadFile(dict)
 			if err != nil {
@@ -36,23 +35,43 @@ func anagramCommand() *cobra.Command {
 				return
 			}
 			words := strings.Split(string(fileContent), "\n")
-			tree.AddWords(words)
 
-			if partial {
-				ana := tree.PartialAnagrams(text)
-				for _, res := range ana {
-					fmt.Println(res)
-				}
-				return
+			progress := make(chan int, 8)
+			go tree.AddWords(words, progress)
+
+			for pr := range progress {
+				bar := strings.Repeat("#", pr/2)
+				fmt.Fprintf(os.Stderr, "\rBuilding tree: [%-50s]", bar)
 			}
-			if multi {
-				ana := tree.MultiAnagrams(text, maxWords, false)
-				for _, res := range ana {
-					fmt.Println(res)
+			fmt.Fprintln(os.Stderr)
+
+			for _, word := range args {
+				fmt.Printf("%s:\n", word)
+				if partial {
+					ana := tree.PartialAnagrams(word)
+					for _, res := range ana {
+						fmt.Print("  ")
+						fmt.Println(strings.Join(res, "  "))
+					}
+				} else if multi {
+					ana := tree.MultiAnagrams(word, maxWords, false)
+					for _, res := range ana {
+						fmt.Print("  ")
+						for b, block := range res {
+							fmt.Print(strings.Join(block, "  "))
+							if b < len(res)-1 {
+								fmt.Print("  |  ")
+							}
+						}
+						fmt.Println()
+					}
+				} else {
+					ana := tree.Anagrams(word)
+					if len(ana) > 0 {
+						fmt.Printf("  %s\n", strings.Join(ana, "  "))
+					}
 				}
-				return
 			}
-			fmt.Println(tree.Anagrams(text))
 		},
 	}
 	anagram.Flags().StringVarP(&dict, "dict", "d", "./data/german-700k.txt", "Path to the dictionary/word list to use.")
