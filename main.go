@@ -24,7 +24,7 @@ func main() {
 
 	tree.AddWords(words)
 
-	ana := tree.MultiAnagrams("Martin")
+	ana := tree.MultiAnagrams("Martin Lange", false)
 
 	for _, res := range ana {
 		fmt.Println(res)
