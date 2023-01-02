@@ -106,13 +106,13 @@ func (t *Tree) partialAnagrams(hist []int) []int {
 }
 
 // MultiAnagrams finds combinations of partial anagrams
-func (t *Tree) MultiAnagrams(word string, perm bool) [][]Leaf {
+func (t *Tree) MultiAnagrams(word string, maxWords int, perm bool) [][]Leaf {
 	word = replacer.Replace(word)
 
 	hist := make([]int, len(t.Letters), len(t.Letters))
 	Histogram(word, t.LettersMap, false, hist)
 
-	tree, indices := t.multiAnagrams(hist, perm)
+	tree, indices := t.multiAnagrams(hist, maxWords, perm)
 
 	results := make([][]Leaf, len(indices), len(indices))
 	for i, ind := range indices {
@@ -126,7 +126,7 @@ func (t *Tree) MultiAnagrams(word string, perm bool) [][]Leaf {
 	return results
 }
 
-func (t *Tree) multiAnagrams(hist []int, perm bool) (*Tree, [][]int) {
+func (t *Tree) multiAnagrams(hist []int, maxWords int, perm bool) (*Tree, [][]int) {
 	totalLen := 0
 	for _, c := range hist {
 		totalLen += c
@@ -148,6 +148,10 @@ func (t *Tree) multiAnagrams(hist []int, perm bool) (*Tree, [][]int) {
 		} else {
 			open = append(open, []int{i})
 		}
+	}
+
+	if maxWords == 1 {
+		return &tree, closed
 	}
 
 	tempHist := make([]int, len(hist), len(hist))
@@ -184,7 +188,9 @@ func (t *Tree) multiAnagrams(hist []int, perm bool) (*Tree, [][]int) {
 			if strLen+utf8.RuneCountInString(str) == totalLen {
 				closed = append(closed, new)
 			} else {
-				open = append(open, new)
+				if maxWords <= 0 || len(new) < maxWords {
+					open = append(open, new)
+				}
 			}
 		}
 	}

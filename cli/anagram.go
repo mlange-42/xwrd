@@ -14,13 +14,19 @@ func anagramCommand() *cobra.Command {
 	var dict string
 	var partial bool
 	var multi bool
+	var maxWords int
 
-	start := &cobra.Command{
+	anagram := &cobra.Command{
 		Use:     "anagram [WORDS...]",
 		Short:   "Determines anagrams",
 		Aliases: []string{"a"},
 		Args:    util.WrappedArgs(cobra.MinimumNArgs(1)),
 		Run: func(cmd *cobra.Command, args []string) {
+			if !multi && cmd.Flags().Changed("max-words") {
+				fmt.Println("ERROR: flag --max-words is only supported with flag --multi")
+				return
+			}
+
 			text := strings.Join(args, " ")
 
 			tree := anagram.NewTree([]rune(anagram.Letters))
@@ -40,7 +46,7 @@ func anagramCommand() *cobra.Command {
 				return
 			}
 			if multi {
-				ana := tree.MultiAnagrams(text, false)
+				ana := tree.MultiAnagrams(text, maxWords, false)
 				for _, res := range ana {
 					fmt.Println(res)
 				}
@@ -49,12 +55,14 @@ func anagramCommand() *cobra.Command {
 			fmt.Println(tree.Anagrams(text))
 		},
 	}
-	start.Flags().StringVarP(&dict, "dict", "d", "./data/german-700k.txt", "Path to the dictionary/word list to use.")
+	anagram.Flags().StringVarP(&dict, "dict", "d", "./data/german-700k.txt", "Path to the dictionary/word list to use.")
 
-	start.Flags().BoolVarP(&partial, "partial", "p", false, "Find partial anagrams.")
-	start.Flags().BoolVarP(&multi, "multi", "m", false, "Find combinations of multiple partial anagrams.")
+	anagram.Flags().BoolVarP(&partial, "partial", "p", false, "Find partial anagrams.")
+	anagram.Flags().BoolVarP(&multi, "multi", "m", false, "Find combinations of multiple partial anagrams.")
 
-	start.MarkFlagsMutuallyExclusive("partial", "multi")
+	anagram.Flags().IntVarP(&maxWords, "max-words", "w", 0, "Word count limit for multi-anagrams.")
 
-	return start
+	anagram.MarkFlagsMutuallyExclusive("partial", "multi")
+
+	return anagram
 }
