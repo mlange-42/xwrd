@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -28,14 +27,13 @@ func anagramCommand() *cobra.Command {
 				return
 			}
 
-			tree := anagram.NewTree([]rune(anagram.Letters))
-			fileContent, err := ioutil.ReadFile(dict)
+			words, err := util.ReadWordList(dict)
 			if err != nil {
-				fmt.Println(err.Error())
+				fmt.Printf("failed to find anagrams: %s", err.Error())
 				return
 			}
-			words := strings.Split(string(fileContent), "\n")
 
+			tree := anagram.NewTree([]rune(anagram.Letters))
 			progress := make(chan int, 8)
 			go tree.AddWords(words, progress)
 
