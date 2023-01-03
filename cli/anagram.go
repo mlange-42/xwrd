@@ -21,7 +21,7 @@ func anagramCommand() *cobra.Command {
 		Use:     "anagram [WORDS...]",
 		Short:   "Determines anagrams",
 		Aliases: []string{"a"},
-		Args:    util.WrappedArgs(cobra.MinimumNArgs(1)),
+		Args:    util.WrappedArgs(cobra.ArbitraryArgs),
 		Run: func(cmd *cobra.Command, args []string) {
 			if !multi && cmd.Flags().Changed("max-words") {
 				fmt.Println("ERROR: flag --max-words is only supported with flag --multi")
@@ -45,31 +45,54 @@ func anagramCommand() *cobra.Command {
 			}
 			fmt.Fprintln(os.Stderr)
 
-			for _, word := range args {
-				fmt.Printf("%s:\n", word)
-				if partial {
-					ana := tree.PartialAnagrams(word)
-					for _, res := range ana {
-						fmt.Print("  ")
-						fmt.Println(strings.Join(res, "  "))
+			interactive := len(args) == 0
+
+			for {
+				var text []string
+				if interactive {
+					fmt.Print("Enter a word: ")
+					var answer string
+					fmt.Scanln(&answer)
+					if len(answer) == 0 {
+						break
 					}
-				} else if multi {
-					ana := tree.MultiAnagrams(word, maxWords, false)
-					for _, res := range ana {
-						fmt.Print("  ")
-						for b, block := range res {
-							fmt.Print(strings.Join(block, "  "))
-							if b < len(res)-1 {
-								fmt.Print("  |  ")
-							}
-						}
-						fmt.Println()
-					}
+					text = []string{answer}
 				} else {
-					ana := tree.Anagrams(word)
-					if len(ana) > 0 {
-						fmt.Printf("  %s\n", strings.Join(ana, "  "))
+					text = args
+				}
+
+				for _, word := range text {
+					if !interactive {
+						fmt.Printf("%s:\n", word)
 					}
+					if partial {
+						ana := tree.PartialAnagrams(word)
+						for _, res := range ana {
+							fmt.Print("  ")
+							fmt.Println(strings.Join(res, "  "))
+						}
+					} else if multi {
+						ana := tree.MultiAnagrams(word, maxWords, false)
+						for _, res := range ana {
+							fmt.Print("  ")
+							for b, block := range res {
+								fmt.Print(strings.Join(block, "  "))
+								if b < len(res)-1 {
+									fmt.Print("  |  ")
+								}
+							}
+							fmt.Println()
+						}
+					} else {
+						ana := tree.Anagrams(word)
+						if len(ana) > 0 {
+							fmt.Printf("  %s\n", strings.Join(ana, "  "))
+						}
+					}
+				}
+
+				if !interactive {
+					break
 				}
 			}
 		},
