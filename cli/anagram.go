@@ -16,7 +16,9 @@ func anagramCommand(config *core.Config) *cobra.Command {
 	var dict string
 	var partial bool
 	var multi bool
-	var maxWords int
+	var maxWords uint
+	var minLength uint
+	var unknown []uint
 
 	anagram := &cobra.Command{
 		Use:   "anagram [WORDS...]",
@@ -33,6 +35,34 @@ Enters interactive mode if called without position arguments (i.e. words).
 			if !multi && cmd.Flags().Changed("max-words") {
 				fmt.Println("ERROR: flag --max-words is only supported with flag --multi")
 				return
+			}
+			if !multi && !partial && minLength > 0 {
+				fmt.Println("ERROR: flag --min-length is only supported with flag --multi or --partial")
+				return
+			}
+			var minUnknown uint = 0
+			var maxUnknown uint = 0
+			if len(unknown) > 0 {
+				if multi {
+					fmt.Println("ERROR: flag --unknown is not supported with flags --multi")
+					return
+				}
+				switch len(unknown) {
+				case 0:
+				case 1:
+					minUnknown = unknown[0]
+					maxUnknown = unknown[0]
+				case 2:
+					minUnknown = unknown[0]
+					maxUnknown = unknown[1]
+					if minUnknown > maxUnknown {
+						fmt.Println("ERROR: flag --unknown - 2nd argument must not be larger than 1st argument")
+						return
+					}
+				default:
+					fmt.Println("ERROR: flag --unknown expects one or two arguments")
+					return
+				}
 			}
 
 			dictionary := config.GetDict()
@@ -79,13 +109,13 @@ Enters interactive mode if called without position arguments (i.e. words).
 						fmt.Printf("%s:\n", word)
 					}
 					if partial {
-						ana := tree.PartialAnagrams(word)
+						ana := tree.PartialAnagramsWithUnknown(word, minLength, minUnknown, maxUnknown)
 						for _, res := range ana {
 							fmt.Print("  ")
 							fmt.Println(strings.Join(res, "  "))
 						}
 					} else if multi {
-						ana := tree.MultiAnagrams(word, maxWords, false)
+						ana := tree.MultiAnagrams(word, maxWords, minLength, false)
 						for _, res := range ana {
 							fmt.Print("  ")
 							for b, block := range res {
@@ -97,9 +127,10 @@ Enters interactive mode if called without position arguments (i.e. words).
 							fmt.Println()
 						}
 					} else {
-						ana := tree.Anagrams(word)
-						if len(ana) > 0 {
-							fmt.Printf("  %s\n", strings.Join(ana, "  "))
+						ana := tree.AnagramsWithUnknown(word, minUnknown, maxUnknown)
+						for _, res := range ana {
+							fmt.Print("  ")
+							fmt.Println(strings.Join(res, "  "))
 						}
 					}
 				}
@@ -115,7 +146,10 @@ Enters interactive mode if called without position arguments (i.e. words).
 	anagram.Flags().BoolVarP(&partial, "partial", "p", false, "Find partial anagrams.")
 	anagram.Flags().BoolVarP(&multi, "multi", "m", false, "Find combinations of multiple partial anagrams.")
 
-	anagram.Flags().IntVarP(&maxWords, "max-words", "w", 0, "Word count limit for multi-anagrams.")
+	anagram.Flags().UintVarP(&maxWords, "max-words", "w", 0, "Word count limit for multi-anagrams.")
+	anagram.Flags().UintVarP(&minLength, "min-length", "l", 0, "Minimum word length for partial and multi-anagrams.")
+
+	anagram.Flags().UintSliceVarP(&unknown, "unknown", "u", []uint{}, "Number of unknown/open letters ([min,]max).\nUse a single number like '1' for an exact number of unknowns.\nOtherwise, use a range like '0,2'")
 
 	anagram.MarkFlagsMutuallyExclusive("partial", "multi")
 

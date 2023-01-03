@@ -75,7 +75,7 @@ func HasDictionary(dict Dict) bool {
 }
 
 // AllDictionaries lists all installed dictionaries
-func AllDictionaries() ([]Dict, error) {
+func AllDictionaries() (map[string]Dict, error) {
 	basePath := DictDir()
 
 	languages, err := os.ReadDir(basePath)
@@ -83,7 +83,7 @@ func AllDictionaries() ([]Dict, error) {
 		return nil, err
 	}
 
-	results := []Dict{}
+	results := map[string]Dict{}
 
 	for _, lang := range languages {
 		if !lang.IsDir() {
@@ -100,7 +100,8 @@ func AllDictionaries() ([]Dict, error) {
 			if dict.IsDir() {
 				continue
 			}
-			results = append(results, NewDict(lang.Name()+"/"+dict.Name()))
+			d := NewDict(lang.Name() + "/" + dict.Name())
+			results[d.FullName()] = d
 		}
 	}
 	return results, nil
