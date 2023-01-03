@@ -1,7 +1,9 @@
 package cli
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"regexp"
 	"unicode/utf8"
 
@@ -23,13 +25,13 @@ Patterns
 --------
 
 '.' (period) strands for one arbitrary letter
-'?' (question mark) stands for 0 or more arbitrary letters
+'*' (asterisk) stands for 0 or more arbitrary letters
 
 Examples
 --------
 
 a....  - find all 5-letter words starting with 'a'
-?pf    - find all words ending with 'pf'
+*pf    - find all words ending with 'pf'
 a....b - find all words of length 6 stat start with 'a' and end with 'b'
 `,
 		Aliases: []string{"m"},
@@ -48,7 +50,10 @@ a....b - find all words of length 6 stat start with 'a' and end with 'b'
 				if interactive {
 					fmt.Print("Enter a word: ")
 					var answer string
-					fmt.Scanln(&answer)
+					scanner := bufio.NewScanner(os.Stdin)
+					if scanner.Scan() {
+						answer = scanner.Text()
+					}
 					if len(answer) == 0 {
 						break
 					}
@@ -89,7 +94,7 @@ func createPattern(word string) (*regexp.Regexp, error) {
 	if err != nil {
 		return nil, err
 	}
-	exp2, err := regexp.Compile("\\?+")
+	exp2, err := regexp.Compile("\\*+")
 	if err != nil {
 		return nil, err
 	}

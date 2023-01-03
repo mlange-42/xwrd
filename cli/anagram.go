@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"strings"
@@ -56,7 +57,10 @@ Enters interactive mode if called without position arguments (i.e. words).
 				if interactive {
 					fmt.Print("Enter a word: ")
 					var answer string
-					fmt.Scanln(&answer)
+					scanner := bufio.NewScanner(os.Stdin)
+					if scanner.Scan() {
+						answer = scanner.Text()
+					}
 					if len(answer) == 0 {
 						break
 					}
