@@ -6,8 +6,8 @@ import (
 )
 
 // ReadWordList reads a file into a slice of words
-func ReadWordList(path string) ([]string, error) {
-	fileContent, err := ioutil.ReadFile(path)
+func ReadWordList(dict Dict) ([]string, error) {
+	fileContent, err := ioutil.ReadFile(DictPath(dict))
 	if err != nil {
 		return nil, err
 	}

@@ -7,11 +7,12 @@ import (
 	"regexp"
 	"unicode/utf8"
 
+	"github.com/mlange-42/xwrd/core"
 	"github.com/mlange-42/xwrd/util"
 	"github.com/spf13/cobra"
 )
 
-func matchCommand() *cobra.Command {
+func matchCommand(config *core.Config) *cobra.Command {
 	var dict string
 
 	match := &cobra.Command{
@@ -37,10 +38,12 @@ a....b - find all words of length 6 stat start with 'a' and end with 'b'
 		Aliases: []string{"m"},
 		Args:    util.WrappedArgs(cobra.ArbitraryArgs),
 		Run: func(cmd *cobra.Command, args []string) {
-			if dict == "" {
-				dict = util.DictPath()
+			dictionary := config.GetDict()
+			if dict != "" {
+				dictionary = util.NewDict(dict)
 			}
-			words, err := util.ReadWordList(dict)
+
+			words, err := util.ReadWordList(dictionary)
 			if err != nil {
 				fmt.Printf("failed to find matching words: %s", err.Error())
 				return

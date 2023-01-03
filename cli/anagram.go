@@ -7,11 +7,12 @@ import (
 	"strings"
 
 	"github.com/mlange-42/xwrd/anagram"
+	"github.com/mlange-42/xwrd/core"
 	"github.com/mlange-42/xwrd/util"
 	"github.com/spf13/cobra"
 )
 
-func anagramCommand() *cobra.Command {
+func anagramCommand(config *core.Config) *cobra.Command {
 	var dict string
 	var partial bool
 	var multi bool
@@ -34,10 +35,11 @@ Enters interactive mode if called without position arguments (i.e. words).
 				return
 			}
 
-			if dict == "" {
-				dict = util.DictPath()
+			dictionary := config.GetDict()
+			if dict != "" {
+				dictionary = util.NewDict(dict)
 			}
-			words, err := util.ReadWordList(dict)
+			words, err := util.ReadWordList(dictionary)
 			if err != nil {
 				fmt.Printf("failed to find anagrams: %s", err.Error())
 				return

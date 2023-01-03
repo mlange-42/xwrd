@@ -8,7 +8,8 @@ import (
 const (
 	rootDirName = ".xwrd"
 	dictDirName = "dict"
-	defaultDict = "default.txt"
+	configName  = "config.yml"
+	defaultDict = "german-700k.txt"
 )
 
 // RootDir returns the root storage directory
@@ -25,9 +26,19 @@ func DictDir() string {
 	return filepath.Join(RootDir(), dictDirName)
 }
 
-// DictPath returns the path to the default dictionary
-func DictPath() string {
-	return filepath.Join(DictDir(), defaultDict)
+// LanguageDir returns the dictionary storage directory for a language
+func LanguageDir(lang string) string {
+	return filepath.Join(RootDir(), dictDirName, lang)
+}
+
+// DictPath returns the path to a dictionary file
+func DictPath(dict Dict) string {
+	return filepath.Join(RootDir(), dictDirName, dict.Language, dict.Name+".lst")
+}
+
+// ConfigPath returns the path to the config file
+func ConfigPath() string {
+	return filepath.Join(RootDir(), configName)
 }
 
 // EnsureDirs creates storage directories if not present
@@ -39,6 +50,13 @@ func EnsureDirs() {
 	err = CreateDir(DictDir())
 	if err != nil {
 		panic(err)
+	}
+	for lang := range Dictionaries {
+		path := filepath.Join(DictDir(), lang)
+		err = CreateDir(path)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
