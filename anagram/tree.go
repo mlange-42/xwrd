@@ -61,6 +61,63 @@ func (t *Tree) anagrams(hist []int) (int, bool) {
 	return node.Leaf, true
 }
 
+// AnagramsWithUnknown finds full anagrams
+func (t *Tree) AnagramsWithUnknown(word string, minUnknown, maxUnknown uint) []Leaf {
+	word = replacer.Replace(word)
+
+	hist := make([]int, len(t.Letters), len(t.Letters))
+	Histogram(word, t.LettersMap, false, hist)
+
+	if maxUnknown == 0 {
+		if idx, ok := t.anagrams(hist); ok {
+			return []Leaf{t.Leaves[idx]}
+		}
+		return []Leaf{}
+	}
+
+	indices := t.anagramsWithUnknown(hist, minUnknown, maxUnknown)
+	results := make([]Leaf, len(indices), len(indices))
+	for i, idx := range indices {
+		results[i] = t.Leaves[idx]
+	}
+
+	return results
+}
+
+type withUnknown struct {
+	Node     *Node
+	Unknowns uint
+}
+
+func (t *Tree) anagramsWithUnknown(hist []int, minUnknown, maxUnknown uint) []int {
+	results := []int{}
+
+	open := []*withUnknown{{t.Root, maxUnknown}}
+	for _, cnt := range hist {
+		newOpen := []*withUnknown{}
+
+		for _, o := range open {
+			for i := cnt; i <= cnt+int(o.Unknowns) && i < len(o.Node.Children); i++ {
+				child := o.Node.Children[i]
+				if child == nil {
+					continue
+				}
+				newOpen = append(newOpen, &withUnknown{child, o.Unknowns - uint(i-cnt)})
+			}
+		}
+		open = newOpen
+	}
+
+	diff := maxUnknown - minUnknown
+	for _, o := range open {
+		if o.Unknowns <= diff {
+			results = append(results, o.Node.Leaf)
+		}
+	}
+
+	return results
+}
+
 // PartialAnagrams finds partial anagrams
 func (t *Tree) PartialAnagrams(word string) []Leaf {
 	word = replacer.Replace(word)
