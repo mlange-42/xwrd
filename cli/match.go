@@ -37,6 +37,9 @@ a....b - find all words of length 6 stat start with 'a' and end with 'b'
 		Aliases: []string{"m"},
 		Args:    util.WrappedArgs(cobra.ArbitraryArgs),
 		Run: func(cmd *cobra.Command, args []string) {
+			if dict == "" {
+				dict = util.DictPath()
+			}
 			words, err := util.ReadWordList(dict)
 			if err != nil {
 				fmt.Printf("failed to find matching words: %s", err.Error())
@@ -84,7 +87,7 @@ a....b - find all words of length 6 stat start with 'a' and end with 'b'
 			}
 		},
 	}
-	match.Flags().StringVarP(&dict, "dict", "d", "./data/german-700k.txt", "Path to the dictionary/word list to use.")
+	match.Flags().StringVarP(&dict, "dict", "d", "", "Path to the dictionary/word list to use.")
 
 	return match
 }

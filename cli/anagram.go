@@ -34,6 +34,9 @@ Enters interactive mode if called without position arguments (i.e. words).
 				return
 			}
 
+			if dict == "" {
+				dict = util.DictPath()
+			}
 			words, err := util.ReadWordList(dict)
 			if err != nil {
 				fmt.Printf("failed to find anagrams: %s", err.Error())
@@ -105,7 +108,7 @@ Enters interactive mode if called without position arguments (i.e. words).
 			}
 		},
 	}
-	anagram.Flags().StringVarP(&dict, "dict", "d", "./data/german-700k.txt", "Path to the dictionary/word list to use.")
+	anagram.Flags().StringVarP(&dict, "dict", "d", "", "Path to the dictionary/word list to use.")
 
 	anagram.Flags().BoolVarP(&partial, "partial", "p", false, "Find partial anagrams.")
 	anagram.Flags().BoolVarP(&multi, "multi", "m", false, "Find combinations of multiple partial anagrams.")
