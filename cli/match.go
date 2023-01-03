@@ -54,7 +54,7 @@ a....b - find all words of length 6 stat start with 'a' and end with 'b'
 			for {
 				var text []string
 				if interactive {
-					fmt.Print("Enter a word: ")
+					fmt.Print("Enter a pattern: ")
 					var answer string
 					scanner := bufio.NewScanner(os.Stdin)
 					if scanner.Scan() {
