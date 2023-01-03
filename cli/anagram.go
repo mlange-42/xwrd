@@ -1,8 +1,8 @@
 package cli
 
 import (
+	"bufio"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -18,8 +18,14 @@ func anagramCommand() *cobra.Command {
 	var maxWords int
 
 	anagram := &cobra.Command{
-		Use:     "anagram [WORDS...]",
-		Short:   "Determines anagrams",
+		Use:   "anagram [WORDS...]",
+		Short: "Find anagrams",
+		Long: `Find anagrams.
+
+Finds anagrams, incl. partial anagrams as well as combined/multi-anagrams of multiple words.
+
+Enters interactive mode if called without position arguments (i.e. words).
+`,
 		Aliases: []string{"a"},
 		Args:    util.WrappedArgs(cobra.ArbitraryArgs),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -28,14 +34,13 @@ func anagramCommand() *cobra.Command {
 				return
 			}
 
-			tree := anagram.NewTree([]rune(anagram.Letters))
-			fileContent, err := ioutil.ReadFile(dict)
+			words, err := util.ReadWordList(dict)
 			if err != nil {
-				fmt.Println(err.Error())
+				fmt.Printf("failed to find anagrams: %s", err.Error())
 				return
 			}
-			words := strings.Split(string(fileContent), "\n")
 
+			tree := anagram.NewTree([]rune(anagram.Letters))
 			progress := make(chan int, 8)
 			go tree.AddWords(words, progress)
 
@@ -52,7 +57,10 @@ func anagramCommand() *cobra.Command {
 				if interactive {
 					fmt.Print("Enter a word: ")
 					var answer string
-					fmt.Scanln(&answer)
+					scanner := bufio.NewScanner(os.Stdin)
+					if scanner.Scan() {
+						answer = scanner.Text()
+					}
 					if len(answer) == 0 {
 						break
 					}

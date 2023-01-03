@@ -21,6 +21,7 @@ func RootCommand(version string) *cobra.Command {
 	}
 
 	root.AddCommand(anagramCommand())
+	root.AddCommand(matchCommand())
 
 	return root
 }
