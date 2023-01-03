@@ -14,8 +14,10 @@ func matchCommand() *cobra.Command {
 
 	match := &cobra.Command{
 		Use:   "match [WORDS...]",
-		Short: "Find matching words",
-		Long: `Find matching words
+		Short: "Find words matching a pattern of letter positions",
+		Long: `Find words matching a pattern of letter positions.
+
+Enters interactive mode if called without position arguments (i.e. words).
 
 Patterns
 --------

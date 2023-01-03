@@ -17,8 +17,14 @@ func anagramCommand() *cobra.Command {
 	var maxWords int
 
 	anagram := &cobra.Command{
-		Use:     "anagram [WORDS...]",
-		Short:   "Determines anagrams",
+		Use:   "anagram [WORDS...]",
+		Short: "Find anagrams",
+		Long: `Find anagrams.
+
+Finds anagrams, incl. partial anagrams as well as combined/multi-anagrams of multiple words.
+
+Enters interactive mode if called without position arguments (i.e. words).
+`,
 		Aliases: []string{"a"},
 		Args:    util.WrappedArgs(cobra.ArbitraryArgs),
 		Run: func(cmd *cobra.Command, args []string) {
