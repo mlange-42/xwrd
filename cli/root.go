@@ -1,11 +1,12 @@
 package cli
 
 import (
+	"github.com/mlange-42/xwrd/core"
 	"github.com/spf13/cobra"
 )
 
 // RootCommand sets up the CLI
-func RootCommand(version string) *cobra.Command {
+func RootCommand(config *core.Config, version string) *cobra.Command {
 	root := &cobra.Command{
 		Use:           "xwrd",
 		Short:         "Words tool",
@@ -20,8 +21,9 @@ func RootCommand(version string) *cobra.Command {
 		},
 	}
 
-	root.AddCommand(anagramCommand())
-	root.AddCommand(matchCommand())
+	root.AddCommand(anagramCommand(config))
+	root.AddCommand(matchCommand(config))
+	root.AddCommand(dictCommand(config))
 
 	return root
 }

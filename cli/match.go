@@ -7,11 +7,12 @@ import (
 	"regexp"
 	"unicode/utf8"
 
+	"github.com/mlange-42/xwrd/core"
 	"github.com/mlange-42/xwrd/util"
 	"github.com/spf13/cobra"
 )
 
-func matchCommand() *cobra.Command {
+func matchCommand(config *core.Config) *cobra.Command {
 	var dict string
 
 	match := &cobra.Command{
@@ -37,7 +38,12 @@ a....b - find all words of length 6 stat start with 'a' and end with 'b'
 		Aliases: []string{"m"},
 		Args:    util.WrappedArgs(cobra.ArbitraryArgs),
 		Run: func(cmd *cobra.Command, args []string) {
-			words, err := util.ReadWordList(dict)
+			dictionary := config.GetDict()
+			if dict != "" {
+				dictionary = util.NewDict(dict)
+			}
+
+			words, err := util.LoadDictionary(dictionary)
 			if err != nil {
 				fmt.Printf("failed to find matching words: %s", err.Error())
 				return
@@ -48,7 +54,7 @@ a....b - find all words of length 6 stat start with 'a' and end with 'b'
 			for {
 				var text []string
 				if interactive {
-					fmt.Print("Enter a word: ")
+					fmt.Print("Enter a pattern: ")
 					var answer string
 					scanner := bufio.NewScanner(os.Stdin)
 					if scanner.Scan() {
@@ -84,7 +90,7 @@ a....b - find all words of length 6 stat start with 'a' and end with 'b'
 			}
 		},
 	}
-	match.Flags().StringVarP(&dict, "dict", "d", "./data/german-700k.txt", "Path to the dictionary/word list to use.")
+	match.Flags().StringVarP(&dict, "dict", "d", "", "Path to the dictionary/word list to use.")
 
 	return match
 }

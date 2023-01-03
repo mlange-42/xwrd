@@ -7,11 +7,12 @@ import (
 	"strings"
 
 	"github.com/mlange-42/xwrd/anagram"
+	"github.com/mlange-42/xwrd/core"
 	"github.com/mlange-42/xwrd/util"
 	"github.com/spf13/cobra"
 )
 
-func anagramCommand() *cobra.Command {
+func anagramCommand(config *core.Config) *cobra.Command {
 	var dict string
 	var partial bool
 	var multi bool
@@ -34,7 +35,11 @@ Enters interactive mode if called without position arguments (i.e. words).
 				return
 			}
 
-			words, err := util.ReadWordList(dict)
+			dictionary := config.GetDict()
+			if dict != "" {
+				dictionary = util.NewDict(dict)
+			}
+			words, err := util.LoadDictionary(dictionary)
 			if err != nil {
 				fmt.Printf("failed to find anagrams: %s", err.Error())
 				return
@@ -105,7 +110,7 @@ Enters interactive mode if called without position arguments (i.e. words).
 			}
 		},
 	}
-	anagram.Flags().StringVarP(&dict, "dict", "d", "./data/german-700k.txt", "Path to the dictionary/word list to use.")
+	anagram.Flags().StringVarP(&dict, "dict", "d", "", "Path to the dictionary/word list to use.")
 
 	anagram.Flags().BoolVarP(&partial, "partial", "p", false, "Find partial anagrams.")
 	anagram.Flags().BoolVarP(&multi, "multi", "m", false, "Find combinations of multiple partial anagrams.")
