@@ -43,7 +43,7 @@ a....b - find all words of length 6 stat start with 'a' and end with 'b'
 				dictionary = util.NewDict(dict)
 			}
 
-			words, err := util.ReadWordList(dictionary)
+			words, err := util.LoadDictionary(dictionary)
 			if err != nil {
 				fmt.Printf("failed to find matching words: %s", err.Error())
 				return

@@ -1,7 +1,9 @@
 package util
 
 import (
+	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -47,21 +49,40 @@ var Dictionaries = map[string][]Dict{
 	},
 }
 
-// DownloadDict downloads a dictionary
-func DownloadDict(dict Dict) error {
-	path := DictPath(dict)
-
-	out, err := os.Create(path)
-	if err != nil {
-		return err
+// LoadDictionary reads a file into a slice of words
+func LoadDictionary(dict Dict) ([]string, error) {
+	if !HasDictionary(dict) {
+		return nil, fmt.Errorf("no dictionary '%s/%s'. Download with: xwrd download %[1]s/%[2]s", dict.Language, dict.Name)
 	}
-	defer out.Close()
+	fileContent, err := ioutil.ReadFile(DictPath(dict))
+	if err != nil {
+		return nil, err
+	}
+	words := strings.Split(string(fileContent), "\n")
+	return words, nil
+}
+
+// HasDictionary checks if a dict exists
+func HasDictionary(dict Dict) bool {
+	path := DictPath(dict)
+	return FileExists(path)
+}
+
+// DownloadDictionary downloads a dictionary
+func DownloadDictionary(dict Dict) error {
+	path := DictPath(dict)
 
 	resp, err := http.Get(dict.URL)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
+
+	out, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
 
 	_, err = io.Copy(out, resp.Body)
 	if err != nil {

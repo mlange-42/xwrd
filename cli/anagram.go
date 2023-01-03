@@ -39,7 +39,7 @@ Enters interactive mode if called without position arguments (i.e. words).
 			if dict != "" {
 				dictionary = util.NewDict(dict)
 			}
-			words, err := util.ReadWordList(dictionary)
+			words, err := util.LoadDictionary(dictionary)
 			if err != nil {
 				fmt.Printf("failed to find anagrams: %s", err.Error())
 				return

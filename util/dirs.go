@@ -73,3 +73,21 @@ func CreateDir(path string) error {
 	}
 	return err
 }
+
+// FileExists checks if a file exists
+func FileExists(path string) bool {
+	info, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return !info.IsDir()
+}
+
+// DirExists checks if a directory exists
+func DirExists(path string) bool {
+	info, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return info.IsDir()
+}
