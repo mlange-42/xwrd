@@ -3,11 +3,13 @@ package cli
 import (
 	"fmt"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/mlange-42/xwrd/core"
 	"github.com/mlange-42/xwrd/util"
 	"github.com/spf13/cobra"
+	"golang.org/x/exp/maps"
 )
 
 func dictCommand(config *core.Config) *cobra.Command {
@@ -48,8 +50,11 @@ func listDictsCommand(config *core.Config) *cobra.Command {
 				return
 			}
 
+			keys := maps.Keys(allDicts)
+			sort.Strings(keys)
 			fmt.Println("Installed:")
-			for _, dict := range allDicts {
+			for _, key := range keys {
+				dict := allDicts[key]
 				fmt.Printf("  %s/%s\n", dict.Language, strings.TrimSuffix(dict.Name, filepath.Ext(dict.Name)))
 			}
 			if len(allDicts) == 0 {
