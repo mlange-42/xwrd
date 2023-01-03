@@ -38,8 +38,8 @@ Enters interactive mode if called without position arguments (i.e. words).
 			var minUnknown uint = 0
 			var maxUnknown uint = 0
 			if len(unknown) > 0 {
-				if multi || partial {
-					fmt.Println("ERROR: flag --unknown is not supported with flags --partial or --multi")
+				if multi {
+					fmt.Println("ERROR: flag --unknown is not supported with flags --multi")
 					return
 				}
 				switch len(unknown) {
@@ -104,7 +104,7 @@ Enters interactive mode if called without position arguments (i.e. words).
 						fmt.Printf("%s:\n", word)
 					}
 					if partial {
-						ana := tree.PartialAnagrams(word)
+						ana := tree.PartialAnagramsWithUnknown(word, minUnknown, maxUnknown)
 						for _, res := range ana {
 							fmt.Print("  ")
 							fmt.Println(strings.Join(res, "  "))

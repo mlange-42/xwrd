@@ -162,6 +162,63 @@ func (t *Tree) partialAnagrams(hist []int) []int {
 	return results
 }
 
+// PartialAnagramsWithUnknown finds partial anagrams
+func (t *Tree) PartialAnagramsWithUnknown(word string, minUnknown, maxUnknown uint) []Leaf {
+	word = replacer.Replace(word)
+
+	hist := make([]int, len(t.Letters), len(t.Letters))
+	Histogram(word, t.LettersMap, false, hist)
+
+	var indices []int
+	if maxUnknown == 0 {
+		indices = t.partialAnagrams(hist)
+	} else {
+		indices = t.partialAnagramsWithUnknown(hist, minUnknown, maxUnknown)
+	}
+	results := make([]Leaf, len(indices), len(indices))
+	for i, idx := range indices {
+		results[i] = t.Leaves[idx]
+	}
+
+	return results
+}
+
+func (t *Tree) partialAnagramsWithUnknown(hist []int, minUnknown, maxUnknown uint) []int {
+	results := []int{}
+
+	open := []*withUnknown{{t.Root, maxUnknown}}
+	for _, cnt := range hist {
+		newOpen := []*withUnknown{}
+
+		for _, o := range open {
+			for i, child := range o.Node.Children {
+				if i > cnt+int(o.Unknowns) {
+					break
+				}
+				if child == nil {
+					continue
+				}
+				rem := o.Unknowns
+				if i > cnt {
+					rem = o.Unknowns - uint(i-cnt)
+				}
+				childNode := withUnknown{child, rem}
+				newOpen = append(newOpen, &childNode)
+			}
+		}
+		open = newOpen
+	}
+
+	diff := maxUnknown - minUnknown
+	for _, o := range open {
+		if o.Unknowns <= diff {
+			results = append(results, o.Node.Leaf)
+		}
+	}
+
+	return results
+}
+
 // MultiAnagrams finds combinations of partial anagrams
 func (t *Tree) MultiAnagrams(word string, maxWords int, perm bool) [][]Leaf {
 	word = replacer.Replace(word)
