@@ -119,13 +119,13 @@ func (t *Tree) anagramsWithUnknown(hist []int, minUnknown, maxUnknown uint) []in
 }
 
 // PartialAnagrams finds partial anagrams
-func (t *Tree) PartialAnagrams(word string) []Leaf {
+func (t *Tree) PartialAnagrams(word string, minLength uint) []Leaf {
 	word = replacer.Replace(word)
 
 	hist := make([]int, len(t.Letters), len(t.Letters))
 	Histogram(word, t.LettersMap, false, hist)
 
-	indices := t.partialAnagrams(hist)
+	indices := t.partialAnagrams(hist, minLength)
 	results := make([]Leaf, len(indices), len(indices))
 	for i, idx := range indices {
 		results[i] = t.Leaves[idx]
@@ -134,7 +134,7 @@ func (t *Tree) PartialAnagrams(word string) []Leaf {
 	return results
 }
 
-func (t *Tree) partialAnagrams(hist []int) []int {
+func (t *Tree) partialAnagrams(hist []int, minLength uint) []int {
 	results := []int{}
 
 	open := []*Node{t.Root}
@@ -156,14 +156,16 @@ func (t *Tree) partialAnagrams(hist []int) []int {
 	}
 
 	for _, o := range open {
-		results = append(results, o.Leaf)
+		if minLength == 0 || utf8.RuneCountInString(t.Leaves[o.Leaf][0]) >= int(minLength) {
+			results = append(results, o.Leaf)
+		}
 	}
 
 	return results
 }
 
 // PartialAnagramsWithUnknown finds partial anagrams
-func (t *Tree) PartialAnagramsWithUnknown(word string, minUnknown, maxUnknown uint) []Leaf {
+func (t *Tree) PartialAnagramsWithUnknown(word string, minLength, minUnknown, maxUnknown uint) []Leaf {
 	word = replacer.Replace(word)
 
 	hist := make([]int, len(t.Letters), len(t.Letters))
@@ -171,9 +173,9 @@ func (t *Tree) PartialAnagramsWithUnknown(word string, minUnknown, maxUnknown ui
 
 	var indices []int
 	if maxUnknown == 0 {
-		indices = t.partialAnagrams(hist)
+		indices = t.partialAnagrams(hist, minLength)
 	} else {
-		indices = t.partialAnagramsWithUnknown(hist, minUnknown, maxUnknown)
+		indices = t.partialAnagramsWithUnknown(hist, minLength, minUnknown, maxUnknown)
 	}
 	results := make([]Leaf, len(indices), len(indices))
 	for i, idx := range indices {
@@ -183,7 +185,7 @@ func (t *Tree) PartialAnagramsWithUnknown(word string, minUnknown, maxUnknown ui
 	return results
 }
 
-func (t *Tree) partialAnagramsWithUnknown(hist []int, minUnknown, maxUnknown uint) []int {
+func (t *Tree) partialAnagramsWithUnknown(hist []int, minLength, minUnknown, maxUnknown uint) []int {
 	results := []int{}
 
 	open := []*withUnknown{{t.Root, maxUnknown}}
@@ -211,7 +213,9 @@ func (t *Tree) partialAnagramsWithUnknown(hist []int, minUnknown, maxUnknown uin
 
 	diff := maxUnknown - minUnknown
 	for _, o := range open {
-		if o.Unknowns <= diff {
+		if o.Unknowns <= diff &&
+			(minLength == 0 || utf8.RuneCountInString(t.Leaves[o.Node.Leaf][0]) >= int(minLength)) {
+
 			results = append(results, o.Node.Leaf)
 		}
 	}
@@ -220,13 +224,13 @@ func (t *Tree) partialAnagramsWithUnknown(hist []int, minUnknown, maxUnknown uin
 }
 
 // MultiAnagrams finds combinations of partial anagrams
-func (t *Tree) MultiAnagrams(word string, maxWords int, perm bool) [][]Leaf {
+func (t *Tree) MultiAnagrams(word string, maxWords, minLength uint, perm bool) [][]Leaf {
 	word = replacer.Replace(word)
 
 	hist := make([]int, len(t.Letters), len(t.Letters))
 	Histogram(word, t.LettersMap, false, hist)
 
-	tree, indices := t.multiAnagrams(hist, maxWords, perm)
+	tree, indices := t.multiAnagrams(hist, maxWords, minLength, perm)
 
 	results := make([][]Leaf, len(indices), len(indices))
 	for i, ind := range indices {
@@ -240,13 +244,13 @@ func (t *Tree) MultiAnagrams(word string, maxWords int, perm bool) [][]Leaf {
 	return results
 }
 
-func (t *Tree) multiAnagrams(hist []int, maxWords int, perm bool) (*Tree, [][]int) {
+func (t *Tree) multiAnagrams(hist []int, maxWords, minLength uint, perm bool) (*Tree, [][]int) {
 	totalLen := 0
 	for _, c := range hist {
 		totalLen += c
 	}
 
-	partials := t.partialAnagrams(hist)
+	partials := t.partialAnagrams(hist, minLength)
 
 	tree := NewTree(t.Letters)
 	for _, p := range partials {
@@ -284,7 +288,7 @@ func (t *Tree) multiAnagrams(hist []int, maxWords int, perm bool) (*Tree, [][]in
 			Histogram(str, t.LettersMap, true, tempHist)
 		}
 
-		subPartials := tree.partialAnagrams(tempHist)
+		subPartials := tree.partialAnagrams(tempHist, minLength)
 
 		if len(subPartials) == 0 {
 			continue
@@ -302,7 +306,7 @@ func (t *Tree) multiAnagrams(hist []int, maxWords int, perm bool) (*Tree, [][]in
 			if strLen+utf8.RuneCountInString(str) == totalLen {
 				closed = append(closed, new)
 			} else {
-				if maxWords <= 0 || len(new) < maxWords {
+				if maxWords <= 0 || len(new) < int(maxWords) {
 					open = append(open, new)
 				}
 			}
