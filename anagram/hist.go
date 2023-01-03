@@ -1,7 +1,7 @@
 package anagram
 
-// Letters used for the anagram tree
-const Letters = "abcdefghijklmnopqrstuvwxyzäöüß?"
+// Letters used for the anagram tree. Sorted for memory-efficient trees
+const Letters = "äöü?qxyjßvpzkfwbomgcluhdtarnise"
 
 // Histogram returns a histogram of rune counts for a word
 func Histogram(word string, letters map[rune]int, subtract bool, result []int) {

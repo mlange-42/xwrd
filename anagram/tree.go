@@ -17,6 +17,13 @@ type Tree struct {
 	LettersMap map[rune]int
 }
 
+// Node is a node in an AnagramTree
+type Node struct {
+	Letter   rune
+	Children []*Node
+	Leaf     int
+}
+
 // Leaf is a tree leaf
 type Leaf []string
 
@@ -379,13 +386,6 @@ func (t *Tree) AddWords(words []string, progress chan int) {
 func (t *Tree) addLeaf() int {
 	t.Leaves = append(t.Leaves, []string{})
 	return len(t.Leaves) - 1
-}
-
-// Node is a node in an AnagramTree
-type Node struct {
-	Letter   rune
-	Children []*Node
-	Leaf     int
 }
 
 // NewNode creates a new Node
