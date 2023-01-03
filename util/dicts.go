@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -31,15 +32,13 @@ func NewDict(langName string) Dict {
 	}
 }
 
+// FullName returns the full name with language prefix
+func (d *Dict) FullName() string {
+	return fmt.Sprintf("%s/%s", d.Language, d.Name)
+}
+
 // Dictionaries list dictionaries available for download
 var Dictionaries = map[string][]Dict{
-	"en": {
-		{
-			Name:     "yawl",
-			Language: "en",
-			URL:      "https://raw.githubusercontent.com/elasticdog/yawl/master/yawl-0.3.2.03/word.list",
-		},
-	},
 	"de": {
 		{
 			Name:     "enz",
@@ -47,12 +46,19 @@ var Dictionaries = map[string][]Dict{
 			URL:      "https://raw.githubusercontent.com/enz/german-wordlist/master/words",
 		},
 	},
+	"en": {
+		{
+			Name:     "yawl",
+			Language: "en",
+			URL:      "https://raw.githubusercontent.com/elasticdog/yawl/master/yawl-0.3.2.03/word.list",
+		},
+	},
 }
 
 // LoadDictionary reads a file into a slice of words
 func LoadDictionary(dict Dict) ([]string, error) {
 	if !HasDictionary(dict) {
-		return nil, fmt.Errorf("no dictionary '%s/%s'. Download with: xwrd download %[1]s/%[2]s", dict.Language, dict.Name)
+		return nil, fmt.Errorf("no dictionary '%s/%s'. Download with: xwrd dict install %[1]s/%[2]s", dict.Language, dict.Name)
 	}
 	fileContent, err := ioutil.ReadFile(DictPath(dict))
 	if err != nil {
@@ -66,6 +72,38 @@ func LoadDictionary(dict Dict) ([]string, error) {
 func HasDictionary(dict Dict) bool {
 	path := DictPath(dict)
 	return FileExists(path)
+}
+
+// AllDictionaries lists all installed dictionaries
+func AllDictionaries() ([]Dict, error) {
+	basePath := DictDir()
+
+	languages, err := os.ReadDir(basePath)
+	if err != nil {
+		return nil, err
+	}
+
+	results := []Dict{}
+
+	for _, lang := range languages {
+		if !lang.IsDir() {
+			continue
+		}
+		langPath := filepath.Join(basePath, lang.Name())
+
+		dicts, err := os.ReadDir(langPath)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, dict := range dicts {
+			if dict.IsDir() {
+				continue
+			}
+			results = append(results, NewDict(lang.Name()+"/"+dict.Name()))
+		}
+	}
+	return results, nil
 }
 
 // DownloadDictionary downloads a dictionary

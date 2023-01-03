@@ -23,7 +23,7 @@ func RootCommand(config *core.Config, version string) *cobra.Command {
 
 	root.AddCommand(anagramCommand(config))
 	root.AddCommand(matchCommand(config))
-	root.AddCommand(downloadCommand(config))
+	root.AddCommand(dictCommand(config))
 
 	return root
 }
