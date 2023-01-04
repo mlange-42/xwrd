@@ -79,9 +79,8 @@ Enters interactive mode if called without position arguments (i.e. words).
 
 			interactive := len(args) == 0
 
-			var pattern *regexp.Regexp
 			if op.filter != "" {
-				pattern, err = createPattern(op.filter)
+				op.pattern, err = createPattern(op.filter)
 				if err != nil {
 					fmt.Printf("failed to find anagrams: %s", err.Error())
 					return
@@ -121,102 +120,8 @@ Enters interactive mode if called without position arguments (i.e. words).
 					if len(answer) == 0 {
 						break
 					}
-					if answer == "?" {
-						fmt.Println("")
-						fmt.Println("To change the mode, enter #normal, #partial or #multi.")
-						fmt.Println("")
-						fmt.Println("To change flags, enter the flag's name and the value, separated by '='")
-						fmt.Println("Available flags with current setting:")
-						fmt.Println("")
-						fmt.Printf("  filter = %s\n", op.filter)
-						if op.multi {
-							fmt.Printf("  max-words = %d\n", op.maxWords)
-						}
-						if op.multi || op.partial {
-							fmt.Printf("  min-length = %d\n", op.minLength)
-						}
-						if !op.multi {
-							fmt.Printf("  unknown = %d,%d\n", op.minUnknown, op.maxUnknown)
-						}
-						fmt.Println("")
-						fmt.Println("To quit, enter nothing or press Ctrl+C")
-						fmt.Println("")
-						continue
-					}
-					if strings.HasPrefix(answer, "#") {
-						switch answer {
-						case "#normal", "#n":
-							op.partial = false
-							op.multi = false
-							fmt.Printf("switched to mode #normal\n")
-						case "#partial", "#p":
-							op.partial = true
-							op.multi = false
-							fmt.Printf("switched to mode #partial\n")
-						case "#multi", "#m":
-							op.partial = false
-							op.multi = true
-							fmt.Printf("switched to mode #multi\n")
-						default:
-							fmt.Printf("failed to set mode: unknown mode #%s\n", answer)
-							continue
-						}
-						continue
-					}
-					if strings.Contains(answer, "=") {
-						parts := strings.SplitN(answer, "=", 2)
-						if len(parts) < 2 {
-							fmt.Printf("failed to set flags: no value provided\n")
-							continue
-						}
-						command := strings.TrimSpace(parts[0])
-						value := strings.TrimSpace(parts[1])
-						if !commands[command] {
-							fmt.Printf("failed to set flags: unknown flag #%s\n", command)
-							continue
-						}
-						switch command {
-						case "filter", "f":
-							op.filter = value
-							pat, err := createPattern(op.filter)
-							if err != nil {
-								fmt.Printf("failed to set filter: %s\n", err.Error())
-								continue
-							}
-							if op.filter == "" {
-								pattern = nil
-							} else {
-								pattern = pat
-							}
-							fmt.Printf("set filter=%s\n", op.filter)
-						case "max-words", "w":
-							max, err := strconv.Atoi(value)
-							if err != nil {
-								fmt.Printf("failed to set max-words: %s\n", err.Error())
-								continue
-							}
-							op.maxWords = uint(max)
-							fmt.Printf("set max-words=%d\n", op.maxWords)
-						case "min-length", "l":
-							min, err := strconv.Atoi(value)
-							if err != nil {
-								fmt.Printf("failed to set min-length: %s\n", err.Error())
-								continue
-							}
-							op.minLength = uint(min)
-							fmt.Printf("set min-length=%d\n", op.minLength)
-						case "unknown", "u":
-							min, max, err := parseUnknownStr(value, op.multi)
-							if err != nil {
-								fmt.Printf("failed to set min-length: %s\n", err.Error())
-								continue
-							}
-							op.minUnknown, op.maxUnknown = min, max
-							fmt.Printf("set unknown=%d,%d\n", op.minUnknown, op.maxUnknown)
-						default:
-							fmt.Printf("failed to set flags: unknown flag #%s\n", command)
-							continue
-						}
+					if str, ok := interactiveFlags(answer, &op, commands); ok {
+						fmt.Println(str)
 						continue
 					}
 					text = []string{answer}
@@ -231,7 +136,7 @@ Enters interactive mode if called without position arguments (i.e. words).
 					if op.partial {
 						ana := tree.PartialAnagramsWithUnknown(word, op.minLength, op.minUnknown, op.maxUnknown)
 						for _, res := range ana {
-							line := printFiltered(res, pattern)
+							line := printFiltered(res, op.pattern)
 							if line != "" {
 								fmt.Printf("  %s\n", line)
 							}
@@ -240,13 +145,13 @@ Enters interactive mode if called without position arguments (i.e. words).
 						ana := tree.MultiAnagrams(word, op.maxWords, op.minLength, false)
 
 						for _, res := range ana {
-							found := pattern == nil
+							found := op.pattern == nil
 							foundIndex := -1
-							if pattern != nil {
+							if op.pattern != nil {
 							FindMatch:
 								for b, block := range res {
 									for _, word := range block {
-										if pattern.MatchString(word) {
+										if op.pattern.MatchString(word) {
 											found = true
 											foundIndex = b
 											break FindMatch
@@ -261,7 +166,7 @@ Enters interactive mode if called without position arguments (i.e. words).
 							fmt.Print("  ")
 							for b, block := range res {
 								if b == foundIndex {
-									fmt.Print(printFiltered(block, pattern))
+									fmt.Print(printFiltered(block, op.pattern))
 								} else {
 									fmt.Print(strings.Join(block, "  "))
 								}
@@ -274,7 +179,7 @@ Enters interactive mode if called without position arguments (i.e. words).
 					} else {
 						ana := tree.AnagramsWithUnknown(word, op.minUnknown, op.maxUnknown)
 						for _, res := range ana {
-							line := printFiltered(res, pattern)
+							line := printFiltered(res, op.pattern)
 							if line != "" {
 								fmt.Printf("  %s\n", line)
 							}
@@ -303,6 +208,99 @@ Enters interactive mode if called without position arguments (i.e. words).
 	anagram.MarkFlagsMutuallyExclusive("partial", "multi")
 
 	return anagram
+}
+
+func interactiveFlags(answer string, op *anagramOptions, commands map[string]bool) (string, bool) {
+	if answer == "?" {
+		sb := strings.Builder{}
+		fmt.Fprintln(&sb, "")
+		fmt.Fprintln(&sb, "To change the mode, enter #normal, #partial or #multi.")
+		fmt.Fprintln(&sb, "")
+		fmt.Fprintln(&sb, "To change flags, enter the flag's name and the value, separated by '='")
+		fmt.Fprintln(&sb, "Available flags with current setting:")
+		fmt.Fprintln(&sb, "")
+		fmt.Fprintf(&sb, "  filter = %s\n", op.filter)
+		if op.multi {
+			fmt.Fprintf(&sb, "  max-words = %d\n", op.maxWords)
+		}
+		if op.multi || op.partial {
+			fmt.Fprintf(&sb, "  min-length = %d\n", op.minLength)
+		}
+		if !op.multi {
+			fmt.Fprintf(&sb, "  unknown = %d,%d\n", op.minUnknown, op.maxUnknown)
+		}
+		fmt.Fprintln(&sb, "")
+		fmt.Fprintln(&sb, "To quit, enter nothing or press Ctrl+C")
+		return sb.String(), true
+	}
+	if strings.HasPrefix(answer, "#") {
+		switch answer {
+		case "#normal", "#n":
+			op.partial = false
+			op.multi = false
+			return "switched to mode #normal", true
+		case "#partial", "#p":
+			op.partial = true
+			op.multi = false
+			return "switched to mode #partial", true
+		case "#multi", "#m":
+			op.partial = false
+			op.multi = true
+			return "switched to mode #multi", true
+		default:
+			return fmt.Sprintf("failed to set mode: unknown mode #%s", answer), true
+		}
+
+	}
+	if strings.Contains(answer, "=") {
+		parts := strings.SplitN(answer, "=", 2)
+		if len(parts) < 2 {
+			return "failed to set flags: no value provided", true
+		}
+		command := strings.TrimSpace(parts[0])
+		value := strings.TrimSpace(parts[1])
+		if !commands[command] {
+			return fmt.Sprintf("failed to set flags: unknown flag #%s", command), true
+		}
+		switch command {
+		case "filter", "f":
+			op.filter = value
+			pat, err := createPattern(op.filter)
+			if err != nil {
+				return fmt.Sprintf("failed to set filter: %s", err.Error()), true
+			}
+			if op.filter == "" {
+				op.pattern = nil
+			} else {
+				op.pattern = pat
+			}
+			return fmt.Sprintf("set filter=%s", op.filter), true
+		case "max-words", "w":
+			max, err := strconv.Atoi(value)
+			if err != nil {
+				return fmt.Sprintf("failed to set max-words: %s", err.Error()), true
+			}
+			op.maxWords = uint(max)
+			return fmt.Sprintf("set max-words=%d", op.maxWords), true
+		case "min-length", "l":
+			min, err := strconv.Atoi(value)
+			if err != nil {
+				return fmt.Sprintf("failed to set min-length: %s", err.Error()), true
+			}
+			op.minLength = uint(min)
+			return fmt.Sprintf("set min-length=%d", op.minLength), true
+		case "unknown", "u":
+			min, max, err := parseUnknownStr(value, op.multi)
+			if err != nil {
+				return fmt.Sprintf("failed to set min-length: %s", err.Error()), true
+			}
+			op.minUnknown, op.maxUnknown = min, max
+			return fmt.Sprintf("set unknown=%d,%d", op.minUnknown, op.maxUnknown), true
+		default:
+			return fmt.Sprintf("failed to set flags: unknown flag #%s", command), true
+		}
+	}
+	return "", false
 }
 
 func parseUnknownStr(unknownStr string, multi bool) (uint, uint, error) {
