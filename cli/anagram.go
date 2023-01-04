@@ -14,14 +14,21 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type anagramOptions struct {
+	partial    bool
+	multi      bool
+	maxWords   uint
+	minLength  uint
+	filter     string
+	pattern    *regexp.Regexp
+	unknown    []uint
+	minUnknown uint
+	maxUnknown uint
+}
+
 func anagramCommand(config *core.Config) *cobra.Command {
+	op := anagramOptions{}
 	var dict string
-	var partial bool
-	var multi bool
-	var maxWords uint
-	var minLength uint
-	var filter string
-	var unknown []uint
 
 	anagram := &cobra.Command{
 		Use:   "anagram [WORDS...]",
@@ -35,16 +42,17 @@ Enters interactive mode if called without position arguments (i.e. words).
 		Aliases: []string{"a"},
 		Args:    util.WrappedArgs(cobra.ArbitraryArgs),
 		Run: func(cmd *cobra.Command, args []string) {
-			if !multi && cmd.Flags().Changed("max-words") {
+			if !op.multi && cmd.Flags().Changed("max-words") {
 				fmt.Print("ERROR: flag --max-words is only supported with flag --multi")
 				return
 			}
-			if !multi && !partial && minLength > 0 {
+			if !op.multi && !op.partial && op.minLength > 0 {
 				fmt.Print("ERROR: flag --min-length is only supported with flag --multi or --partial")
 				return
 			}
 
-			minUnknown, maxUnknown, err := parseUnknown(unknown, multi)
+			var err error
+			op.minUnknown, op.maxUnknown, err = parseUnknown(op.unknown, op.multi)
 			if err != nil {
 				fmt.Printf("ERROR: %s", err.Error())
 			}
@@ -72,8 +80,8 @@ Enters interactive mode if called without position arguments (i.e. words).
 			interactive := len(args) == 0
 
 			var pattern *regexp.Regexp
-			if filter != "" {
-				pattern, err = createPattern(filter)
+			if op.filter != "" {
+				pattern, err = createPattern(op.filter)
 				if err != nil {
 					fmt.Printf("failed to find anagrams: %s", err.Error())
 					return
@@ -92,9 +100,9 @@ Enters interactive mode if called without position arguments (i.e. words).
 			}
 
 			if interactive {
-				if multi {
+				if op.multi {
 					fmt.Print("Find multi-word anagrams.")
-				} else if partial {
+				} else if op.partial {
 					fmt.Print("Find partial anagrams.")
 				} else {
 					fmt.Print("Find anagrams.")
@@ -120,15 +128,15 @@ Enters interactive mode if called without position arguments (i.e. words).
 						fmt.Println("To change flags, enter the flag's name and the value, separated by '='")
 						fmt.Println("Available flags with current setting:")
 						fmt.Println("")
-						fmt.Printf("  filter = %s\n", filter)
-						if multi {
-							fmt.Printf("  max-words = %d\n", maxWords)
+						fmt.Printf("  filter = %s\n", op.filter)
+						if op.multi {
+							fmt.Printf("  max-words = %d\n", op.maxWords)
 						}
-						if multi || partial {
-							fmt.Printf("  min-length = %d\n", minLength)
+						if op.multi || op.partial {
+							fmt.Printf("  min-length = %d\n", op.minLength)
 						}
-						if !multi {
-							fmt.Printf("  unknown = %d,%d\n", minUnknown, maxUnknown)
+						if !op.multi {
+							fmt.Printf("  unknown = %d,%d\n", op.minUnknown, op.maxUnknown)
 						}
 						fmt.Println("")
 						fmt.Println("To quit, enter nothing or press Ctrl+C")
@@ -138,16 +146,16 @@ Enters interactive mode if called without position arguments (i.e. words).
 					if strings.HasPrefix(answer, "#") {
 						switch answer {
 						case "#normal", "#n":
-							partial = false
-							multi = false
+							op.partial = false
+							op.multi = false
 							fmt.Printf("switched to mode #normal\n")
 						case "#partial", "#p":
-							partial = true
-							multi = false
+							op.partial = true
+							op.multi = false
 							fmt.Printf("switched to mode #partial\n")
 						case "#multi", "#m":
-							partial = false
-							multi = true
+							op.partial = false
+							op.multi = true
 							fmt.Printf("switched to mode #multi\n")
 						default:
 							fmt.Printf("failed to set mode: unknown mode #%s\n", answer)
@@ -169,42 +177,42 @@ Enters interactive mode if called without position arguments (i.e. words).
 						}
 						switch command {
 						case "filter", "f":
-							filter = value
-							pat, err := createPattern(filter)
+							op.filter = value
+							pat, err := createPattern(op.filter)
 							if err != nil {
 								fmt.Printf("failed to set filter: %s\n", err.Error())
 								continue
 							}
-							if filter == "" {
+							if op.filter == "" {
 								pattern = nil
 							} else {
 								pattern = pat
 							}
-							fmt.Printf("set filter=%s\n", filter)
+							fmt.Printf("set filter=%s\n", op.filter)
 						case "max-words", "w":
 							max, err := strconv.Atoi(value)
 							if err != nil {
 								fmt.Printf("failed to set max-words: %s\n", err.Error())
 								continue
 							}
-							maxWords = uint(max)
-							fmt.Printf("set max-words=%d\n", maxWords)
+							op.maxWords = uint(max)
+							fmt.Printf("set max-words=%d\n", op.maxWords)
 						case "min-length", "l":
 							min, err := strconv.Atoi(value)
 							if err != nil {
 								fmt.Printf("failed to set min-length: %s\n", err.Error())
 								continue
 							}
-							minLength = uint(min)
-							fmt.Printf("set min-length=%d\n", minLength)
+							op.minLength = uint(min)
+							fmt.Printf("set min-length=%d\n", op.minLength)
 						case "unknown", "u":
-							min, max, err := parseUnknownStr(value, multi)
+							min, max, err := parseUnknownStr(value, op.multi)
 							if err != nil {
 								fmt.Printf("failed to set min-length: %s\n", err.Error())
 								continue
 							}
-							minUnknown, maxUnknown = min, max
-							fmt.Printf("set unknown=%d,%d\n", minUnknown, maxUnknown)
+							op.minUnknown, op.maxUnknown = min, max
+							fmt.Printf("set unknown=%d,%d\n", op.minUnknown, op.maxUnknown)
 						default:
 							fmt.Printf("failed to set flags: unknown flag #%s\n", command)
 							continue
@@ -220,16 +228,16 @@ Enters interactive mode if called without position arguments (i.e. words).
 					if !interactive {
 						fmt.Printf("%s:\n", word)
 					}
-					if partial {
-						ana := tree.PartialAnagramsWithUnknown(word, minLength, minUnknown, maxUnknown)
+					if op.partial {
+						ana := tree.PartialAnagramsWithUnknown(word, op.minLength, op.minUnknown, op.maxUnknown)
 						for _, res := range ana {
 							line := printFiltered(res, pattern)
 							if line != "" {
 								fmt.Printf("  %s\n", line)
 							}
 						}
-					} else if multi {
-						ana := tree.MultiAnagrams(word, maxWords, minLength, false)
+					} else if op.multi {
+						ana := tree.MultiAnagrams(word, op.maxWords, op.minLength, false)
 
 						for _, res := range ana {
 							found := pattern == nil
@@ -264,7 +272,7 @@ Enters interactive mode if called without position arguments (i.e. words).
 							fmt.Println()
 						}
 					} else {
-						ana := tree.AnagramsWithUnknown(word, minUnknown, maxUnknown)
+						ana := tree.AnagramsWithUnknown(word, op.minUnknown, op.maxUnknown)
 						for _, res := range ana {
 							line := printFiltered(res, pattern)
 							if line != "" {
@@ -282,15 +290,15 @@ Enters interactive mode if called without position arguments (i.e. words).
 	}
 	anagram.Flags().StringVarP(&dict, "dict", "d", "", "Path to the dictionary/word list to use.")
 
-	anagram.Flags().BoolVarP(&partial, "partial", "p", false, "Find partial anagrams.")
-	anagram.Flags().BoolVarP(&multi, "multi", "m", false, "Find combinations of multiple partial anagrams.")
+	anagram.Flags().BoolVarP(&op.partial, "partial", "p", false, "Find partial anagrams.")
+	anagram.Flags().BoolVarP(&op.multi, "multi", "m", false, "Find combinations of multiple partial anagrams.")
 
-	anagram.Flags().UintVarP(&maxWords, "max-words", "w", 0, "Word count limit for multi-anagrams.")
-	anagram.Flags().UintVarP(&minLength, "min-length", "l", 0, "Minimum word length for partial and multi-anagrams.")
+	anagram.Flags().UintVarP(&op.maxWords, "max-words", "w", 0, "Word count limit for multi-anagrams.")
+	anagram.Flags().UintVarP(&op.minLength, "min-length", "l", 0, "Minimum word length for partial and multi-anagrams.")
 
-	anagram.Flags().UintSliceVarP(&unknown, "unknown", "u", []uint{}, "Number of unknown/open letters ([min,]max).\nUse a single number like '1' for an exact number of unknowns.\nOtherwise, use a range like '0,2'")
+	anagram.Flags().UintSliceVarP(&op.unknown, "unknown", "u", []uint{}, "Number of unknown/open letters ([min,]max).\nUse a single number like '1' for an exact number of unknowns.\nOtherwise, use a range like '0,2'")
 
-	anagram.Flags().StringVarP(&filter, "filter", "f", "", "Pattern for filtering anagrams.")
+	anagram.Flags().StringVarP(&op.filter, "filter", "f", "", "Pattern for filtering anagrams.")
 
 	anagram.MarkFlagsMutuallyExclusive("partial", "multi")
 
