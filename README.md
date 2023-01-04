@@ -72,9 +72,9 @@ Multi-word anagrams:
 xwrd anagram --multi
 ```
 
-### Fund words by pattern
+### Find words by pattern
 
-Run with words to process:
+Run with patterns to process:
 
 ```shell
 xwrd match .a..x
