@@ -220,15 +220,30 @@ func interactiveFlags(answer string, op *anagramOptions, commands map[string]boo
 		fmt.Fprintln(&sb, "Available flags with current setting:")
 		fmt.Fprintln(&sb, "")
 		fmt.Fprintf(&sb, "  filter = %s\n", op.filter)
+		if !op.multi {
+			fmt.Fprintf(&sb, "  unknown = %d,%d\n", op.minUnknown, op.maxUnknown)
+		} else {
+			fmt.Fprintf(&sb, "  unknown = %d,%d    (*)\n", op.minUnknown, op.maxUnknown)
+		}
 		if op.multi {
 			fmt.Fprintf(&sb, "  max-words = %d\n", op.maxWords)
+		} else {
+			fmt.Fprintf(&sb, "  max-words = %d    (*)\n", op.maxWords)
 		}
 		if op.multi || op.partial {
 			fmt.Fprintf(&sb, "  min-length = %d\n", op.minLength)
+		} else {
+			fmt.Fprintf(&sb, "  min-length = %d   (*)\n", op.minLength)
 		}
-		if !op.multi {
-			fmt.Fprintf(&sb, "  unknown = %d,%d\n", op.minUnknown, op.maxUnknown)
+
+		mode := "#normal"
+		if op.partial {
+			mode = "#partial"
+		} else if op.multi {
+			mode = "#multi"
 		}
+
+		fmt.Fprintf(&sb, "  (*)...ignored in mode %s\n", mode)
 		fmt.Fprintln(&sb, "")
 		fmt.Fprintln(&sb, "To quit, enter nothing or press Ctrl+C")
 		return sb.String(), true
