@@ -92,7 +92,14 @@ Enters interactive mode if called without position arguments (i.e. words).
 			}
 
 			if interactive {
-				fmt.Println("Enter ? for help.")
+				if multi {
+					fmt.Print("Find multi-word anagrams.")
+				} else if partial {
+					fmt.Print("Find partial anagrams.")
+				} else {
+					fmt.Print("Find anagrams.")
+				}
+				fmt.Println(" Enter ? for help.")
 			}
 			for {
 				var text []string
@@ -107,8 +114,12 @@ Enters interactive mode if called without position arguments (i.e. words).
 						break
 					}
 					if answer == "?" {
+						fmt.Println("")
+						fmt.Println("To change the mode, enter #normal, #partial or #multi.")
+						fmt.Println("")
 						fmt.Println("To change flags, enter the flag's name and the value, separated by '='")
 						fmt.Println("Available flags with current setting:")
+						fmt.Println("")
 						fmt.Printf("  filter = %s\n", filter)
 						if multi {
 							fmt.Printf("  max-words = %d\n", maxWords)
@@ -118,6 +129,29 @@ Enters interactive mode if called without position arguments (i.e. words).
 						}
 						if !multi {
 							fmt.Printf("  unknown = %d,%d\n", minUnknown, maxUnknown)
+						}
+						fmt.Println("")
+						fmt.Println("To quit, enter nothing or press Ctrl+C")
+						fmt.Println("")
+						continue
+					}
+					if strings.HasPrefix(answer, "#") {
+						switch answer {
+						case "#normal", "#n":
+							partial = false
+							multi = false
+							fmt.Printf("switched to mode #normal\n")
+						case "#partial", "#p":
+							partial = true
+							multi = false
+							fmt.Printf("switched to mode #partial\n")
+						case "#multi", "#m":
+							partial = false
+							multi = true
+							fmt.Printf("switched to mode #multi\n")
+						default:
+							fmt.Printf("failed to set mode: unknown mode #%s\n", answer)
+							continue
 						}
 						continue
 					}
