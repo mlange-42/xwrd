@@ -22,11 +22,25 @@ func dictCommand(config *core.Config) *cobra.Command {
 		},
 	}
 
+	root.AddCommand(showDictsCommand(config))
 	root.AddCommand(setDictCommand(config))
 	root.AddCommand(listDictsCommand(config))
 	root.AddCommand(installDictCommand(config))
 
 	return root
+}
+
+func showDictsCommand(config *core.Config) *cobra.Command {
+	download := &cobra.Command{
+		Use:     "info",
+		Short:   "Shows the currently set dictionary",
+		Aliases: []string{"i"},
+		Args:    util.WrappedArgs(cobra.NoArgs),
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Printf(config.Dict)
+		},
+	}
+	return download
 }
 
 func listDictsCommand(config *core.Config) *cobra.Command {
