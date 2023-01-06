@@ -2,7 +2,9 @@
 
 ## [[unpublished]](https://github.com/mlange-42/xwrd/compare/v0.1.1...main)
 
-Nothing
+### Features
+
+* New command `dict analyze` to print statistics about a dictionary (#11)
 
 ## [[v0.1.1]](https://github.com/mlange-42/xwrd/compare/v0.1.0...v0.1.0)
 

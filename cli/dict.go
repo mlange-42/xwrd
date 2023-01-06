@@ -2,10 +2,13 @@ package cli
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+	"unicode"
 
+	"github.com/mlange-42/xwrd/anagram"
 	"github.com/mlange-42/xwrd/core"
 	"github.com/mlange-42/xwrd/util"
 	"github.com/spf13/cobra"
@@ -26,6 +29,7 @@ func dictCommand(config *core.Config) *cobra.Command {
 	root.AddCommand(setDictCommand(config))
 	root.AddCommand(listDictsCommand(config))
 	root.AddCommand(installDictCommand(config))
+	root.AddCommand(analyzeDictCommand(config))
 
 	return root
 }
@@ -147,4 +151,171 @@ func installDictCommand(config *core.Config) *cobra.Command {
 		},
 	}
 	return install
+}
+
+func analyzeDictCommand(config *core.Config) *cobra.Command {
+	analyze := &cobra.Command{
+		Use:   "analyze [DICT]",
+		Short: "Analyze dictionaries",
+		Long: `Analyze dictionaries.
+
+Shows statistics about frequency of letters, word length, anagrams etc.
+Use without arguments to analyze the current dictionary`,
+		Aliases: []string{"a"},
+		Args:    util.WrappedArgs(cobra.MaximumNArgs(1)),
+		Run: func(cmd *cobra.Command, args []string) {
+			dictName := config.Dict
+			if len(args) > 0 {
+				dictName = args[0]
+			}
+			dictionary := util.NewDict(dictName)
+
+			if !util.HasDictionary(dictionary) {
+				fmt.Printf("failed to analyze dictionary: dictionary '%s' does not exist", dictName)
+				return
+			}
+
+			words, err := util.LoadDictionary(dictionary)
+			if err != nil {
+				fmt.Printf("failed to analyze dictionary: %s", err.Error())
+				return
+			}
+
+			analyze(words)
+		},
+	}
+	return analyze
+}
+
+func analyze(words []string) {
+	tree := anagram.NewTree([]rune(anagram.Letters))
+	progress := make(chan int, 8)
+	go tree.AddWords(words, progress)
+
+	for pr := range progress {
+		bar := strings.Repeat("#", pr/2)
+		fmt.Fprintf(os.Stderr, "\rBuilding tree: [%-50s]", bar)
+	}
+	fmt.Fprintln(os.Stderr)
+
+	numWords := len(words)
+	numNonAnagrams := len(tree.Leaves)
+	lengthHist := []int{}
+	totalRunes := map[int]int{}
+	maxRunes := map[int]int{}
+	wordsWithRune := map[int]int{}
+	totalRuneCount := 0
+
+	maxWordLength := 0
+	longestWords := []string{}
+
+	for _, word := range words {
+		runes := []rune(word)
+		if len(runes) == 0 {
+			continue
+		}
+
+		l := len(runes)
+		for len(lengthHist) <= l {
+			lengthHist = append(lengthHist, 0)
+		}
+		lengthHist[l]++
+		totalRuneCount += l
+
+		if l > maxWordLength {
+			longestWords = longestWords[:0]
+			longestWords = append(longestWords, word)
+			maxWordLength = l
+		} else if l == maxWordLength {
+			longestWords = append(longestWords, word)
+		}
+
+		numRunes := map[int]int{}
+		for _, r := range runes {
+			rn := unicode.ToLower(r)
+			if _, ok := numRunes[int(rn)]; ok {
+				numRunes[int(rn)]++
+			} else {
+				numRunes[int(rn)] = 1
+			}
+		}
+		for r, cnt := range numRunes {
+			if _, ok := totalRunes[r]; !ok {
+				totalRunes[r] = 0
+				maxRunes[r] = 0
+				wordsWithRune[r] = 0
+			}
+			totalRunes[r] += cnt
+			if maxRunes[r] < cnt {
+				maxRunes[r] = cnt
+			}
+			wordsWithRune[r]++
+		}
+	}
+
+	anagramsHist := []int{}
+	maxAnagrams := 0
+	var maxLeafs []anagram.Leaf
+	for _, leaf := range tree.Leaves {
+		if len(leaf) > maxAnagrams {
+			maxLeafs = maxLeafs[:0]
+			maxLeafs = append(maxLeafs, leaf)
+			maxAnagrams = len(leaf)
+		} else if len(leaf) == maxAnagrams {
+			maxAnagrams = len(leaf)
+		}
+
+		for len(anagramsHist) <= len(leaf) {
+			anagramsHist = append(anagramsHist, 0)
+		}
+		anagramsHist[len(leaf)]++
+	}
+
+	allRunes := []string{}
+	for _, v := range maps.Keys(totalRunes) {
+		allRunes = append(allRunes, string(rune(v)))
+	}
+	sort.Strings(allRunes)
+
+	fmt.Printf("\n")
+	fmt.Printf("Words  : %d (%d)\n\n", numWords, numNonAnagrams)
+
+	fmt.Printf("Words length:\n")
+	for i, l := range lengthHist {
+		if i == 0 {
+			continue
+		}
+		fmt.Printf("%2d: %8d\n", i, l)
+	}
+
+	if len(longestWords) > 10 {
+		fmt.Printf("Longest words: %s...\n\n", strings.Join(longestWords[:10], ", "))
+	} else {
+		fmt.Printf("Longest words: %s\n\n", strings.Join(longestWords, ", "))
+	}
+
+	fmt.Printf("Letters: max    total   percent    words   percent\n")
+	for _, r := range allRunes {
+		rn := []rune(r)[0]
+		fmt.Printf(
+			"  %s %8d %8d  (%5.02f%%) %8d  (%5.02f%%)\n",
+			r, maxRunes[int(rn)], totalRunes[int(rn)],
+			100.0*float64(totalRunes[int(rn)])/float64(totalRuneCount),
+			wordsWithRune[int(rn)],
+			100.0*float64(wordsWithRune[int(rn)])/float64(len(words)),
+		)
+	}
+
+	fmt.Printf("\n")
+	fmt.Printf("Anagram frequency:\n")
+	for i, l := range anagramsHist {
+		if i == 0 {
+			continue
+		}
+		fmt.Printf("%2d: %8d\n", i, l)
+	}
+	fmt.Printf("Most anagrams:\n")
+	for _, leaf := range maxLeafs {
+		fmt.Printf("%s\n", strings.Join(leaf, "  "))
+	}
 }
