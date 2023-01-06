@@ -9,7 +9,7 @@ import (
 	"github.com/mlange-42/xwrd/util"
 )
 
-const version = "0.1.1"
+const version = "0.1.2"
 
 func main() {
 	util.EnsureDirs()

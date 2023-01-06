@@ -1,12 +1,16 @@
 # Changelog
 
-## [[unpublished]](https://github.com/mlange-42/xwrd/compare/v0.1.1...main)
+## [[unpublished]](https://github.com/mlange-42/xwrd/compare/v0.1.2...main)
+
+Nothing
+
+## [[v0.1.2]](https://github.com/mlange-42/xwrd/compare/v0.1.1...v0.1.2)
 
 ### Features
 
 * New command `dict analyze` to print statistics about a dictionary (#11)
 
-## [[v0.1.1]](https://github.com/mlange-42/xwrd/compare/v0.1.0...v0.1.0)
+## [[v0.1.1]](https://github.com/mlange-42/xwrd/compare/v0.1.0...v0.1.1)
 
 ### Features
 
