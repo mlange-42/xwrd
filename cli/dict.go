@@ -155,8 +155,12 @@ func installDictCommand(config *core.Config) *cobra.Command {
 
 func analyzeDictCommand(config *core.Config) *cobra.Command {
 	analyze := &cobra.Command{
-		Use:     "analyze [DICT]",
-		Short:   "Analyze dictionaries",
+		Use:   "analyze [DICT]",
+		Short: "Analyze dictionaries",
+		Long: `Analyze dictionaries.
+
+Shows statistics about frequency of letters, word length, anagrams etc.
+Use without arguments to analyze the current dictionary`,
 		Aliases: []string{"a"},
 		Args:    util.WrappedArgs(cobra.MaximumNArgs(1)),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -249,6 +253,7 @@ func analyze(words []string) {
 		}
 	}
 
+	anagramsHist := []int{}
 	maxAnagrams := 0
 	var maxLeafs []anagram.Leaf
 	for _, leaf := range tree.Leaves {
@@ -259,6 +264,11 @@ func analyze(words []string) {
 		} else if len(leaf) == maxAnagrams {
 			maxAnagrams = len(leaf)
 		}
+
+		for len(anagramsHist) <= len(leaf) {
+			anagramsHist = append(anagramsHist, 0)
+		}
+		anagramsHist[len(leaf)]++
 	}
 
 	allRunes := []string{}
@@ -267,10 +277,14 @@ func analyze(words []string) {
 	}
 	sort.Strings(allRunes)
 
+	fmt.Printf("\n")
 	fmt.Printf("Words  : %d (%d)\n\n", numWords, numNonAnagrams)
 
 	fmt.Printf("Words length:\n")
 	for i, l := range lengthHist {
+		if i == 0 {
+			continue
+		}
 		fmt.Printf("%2d: %8d\n", i, l)
 	}
 
@@ -293,6 +307,13 @@ func analyze(words []string) {
 	}
 
 	fmt.Printf("\n")
+	fmt.Printf("Anagram frequency:\n")
+	for i, l := range anagramsHist {
+		if i == 0 {
+			continue
+		}
+		fmt.Printf("%2d: %8d\n", i, l)
+	}
 	fmt.Printf("Most anagrams:\n")
 	for _, leaf := range maxLeafs {
 		fmt.Printf("%s\n", strings.Join(leaf, "  "))
