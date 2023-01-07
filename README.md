@@ -89,11 +89,11 @@ xwrd match
 
 #### Patterns
 
-`.` (period) strands for one arbitrary letter  
+`.` (period) stands for one arbitrary letter  
 `*` (asterisk) stands for 0 or more arbitrary letters
 
 #### Examples
 
 `a....` - find all 5-letter words starting with 'a'  
 `*pf` - find all words ending with 'pf'  
-`a....b` - find all words of length 6 stat start with 'a' and end with 'b'  
+`a....b` - find all words of length 6 that start with 'a' and end with 'b'
