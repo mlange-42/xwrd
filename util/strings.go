@@ -1,6 +1,8 @@
 package util
 
-import "unicode"
+import (
+	"unicode"
+)
 
 // UniqueRunes returns a map of unique runes in a string
 func UniqueRunes(text string, ignoreCase bool) map[rune]int {
@@ -18,7 +20,8 @@ func UniqueRunes(text string, ignoreCase bool) map[rune]int {
 	return result
 }
 
-// FindAdditions finds runes that appear in the second argument, but not in the first
+// FindAdditions finds runes that appear in the second argument, but not in the first.
+// The rune-to-count map `orig` is consumed/internally altered by the function!
 func FindAdditions(orig map[rune]int, altered string, ignoreCase bool) []rune {
 	result := []rune{}
 	for _, char := range altered {

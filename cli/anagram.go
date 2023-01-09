@@ -333,7 +333,11 @@ func printNormal(word string, tree *anagram.Tree, op anagramOptions) {
 		if line != "" {
 			fmt.Printf("  %s", line)
 			if op.maxUnknown > 0 {
-				add := util.FindAdditions(runes, res[0], true)
+				tempRunes := make(map[rune]int, len(runes))
+				for k, v := range runes {
+					tempRunes[k] = v
+				}
+				add := util.FindAdditions(tempRunes, res[0], true)
 				if len(add) > 0 {
 					fmt.Printf("  (+%s)", string(add))
 				}
@@ -351,7 +355,11 @@ func printPartial(word string, tree *anagram.Tree, op anagramOptions) {
 		if line != "" {
 			fmt.Printf("  %s", line)
 			if op.maxUnknown > 0 {
-				add := util.FindAdditions(runes, res[0], true)
+				tempRunes := make(map[rune]int, len(runes))
+				for k, v := range runes {
+					tempRunes[k] = v
+				}
+				add := util.FindAdditions(tempRunes, res[0], true)
 				if len(add) > 0 {
 					fmt.Printf("  (+%s)", string(add))
 				}
