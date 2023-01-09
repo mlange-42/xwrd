@@ -1,8 +1,14 @@
 # Changelog
 
-## [[unpublished]](https://github.com/mlange-42/xwrd/compare/v0.1.2...main)
+## [[unpublished]](https://github.com/mlange-42/xwrd/compare/v0.1.3...main)
 
 Nothing
+
+## [[v0.1.3]](https://github.com/mlange-42/xwrd/compare/v0.1.2...v0.1.3)
+
+### Features
+
+* Print added characters in anagrams with unknown/open characters (#12)
 
 ## [[v0.1.2]](https://github.com/mlange-42/xwrd/compare/v0.1.1...v0.1.2)
 
