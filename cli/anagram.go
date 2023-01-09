@@ -326,21 +326,37 @@ func printFiltered(leaf anagram.Leaf, pattern *regexp.Regexp) string {
 }
 
 func printNormal(word string, tree *anagram.Tree, op anagramOptions) {
+	runes := util.UniqueRunes(word, true)
 	ana := tree.AnagramsWithUnknown(word, op.minUnknown, op.maxUnknown)
 	for _, res := range ana {
 		line := printFiltered(res, op.pattern)
 		if line != "" {
-			fmt.Printf("  %s\n", line)
+			fmt.Printf("  %s", line)
+			if op.maxUnknown > 0 {
+				add := util.FindAdditions(runes, res[0], true)
+				if len(add) > 0 {
+					fmt.Printf("  (+%s)", string(add))
+				}
+			}
+			fmt.Print("\n")
 		}
 	}
 }
 
 func printPartial(word string, tree *anagram.Tree, op anagramOptions) {
+	runes := util.UniqueRunes(word, true)
 	ana := tree.PartialAnagramsWithUnknown(word, op.minLength, op.minUnknown, op.maxUnknown)
 	for _, res := range ana {
 		line := printFiltered(res, op.pattern)
 		if line != "" {
-			fmt.Printf("  %s\n", line)
+			fmt.Printf("  %s", line)
+			if op.maxUnknown > 0 {
+				add := util.FindAdditions(runes, res[0], true)
+				if len(add) > 0 {
+					fmt.Printf("  (+%s)", string(add))
+				}
+			}
+			fmt.Print("\n")
 		}
 	}
 }
