@@ -134,56 +134,11 @@ Enters interactive mode if called without position arguments (i.e. words).
 						fmt.Printf("%s:\n", word)
 					}
 					if op.partial {
-						ana := tree.PartialAnagramsWithUnknown(word, op.minLength, op.minUnknown, op.maxUnknown)
-						for _, res := range ana {
-							line := printFiltered(res, op.pattern)
-							if line != "" {
-								fmt.Printf("  %s\n", line)
-							}
-						}
+						printPartial(word, &tree, op)
 					} else if op.multi {
-						ana := tree.MultiAnagrams(word, op.maxWords, op.minLength, false)
-
-						for _, res := range ana {
-							found := op.pattern == nil
-							foundIndex := -1
-							if op.pattern != nil {
-							FindMatch:
-								for b, block := range res {
-									for _, word := range block {
-										if op.pattern.MatchString(word) {
-											found = true
-											foundIndex = b
-											break FindMatch
-										}
-									}
-								}
-							}
-							if !found {
-								continue
-							}
-
-							fmt.Print("  ")
-							for b, block := range res {
-								if b == foundIndex {
-									fmt.Print(printFiltered(block, op.pattern))
-								} else {
-									fmt.Print(strings.Join(block, "  "))
-								}
-								if b < len(res)-1 {
-									fmt.Print("  |  ")
-								}
-							}
-							fmt.Println()
-						}
+						printMulti(word, &tree, op)
 					} else {
-						ana := tree.AnagramsWithUnknown(word, op.minUnknown, op.maxUnknown)
-						for _, res := range ana {
-							line := printFiltered(res, op.pattern)
-							if line != "" {
-								fmt.Printf("  %s\n", line)
-							}
-						}
+						printNormal(word, &tree, op)
 					}
 				}
 
@@ -330,6 +285,7 @@ func parseUnknownStr(unknownStr string, multi bool) (uint, uint, error) {
 	}
 	return parseUnknown(unknown, multi)
 }
+
 func parseUnknown(unknown []uint, multi bool) (uint, uint, error) {
 	var minUnknown uint = 0
 	var maxUnknown uint = 0
@@ -367,4 +323,77 @@ func printFiltered(leaf anagram.Leaf, pattern *regexp.Regexp) string {
 		return ""
 	}
 	return strings.Join(temp, "  ")
+}
+
+func printNormal(word string, tree *anagram.Tree, op anagramOptions) {
+	runes := util.UniqueRunes(word, true)
+	ana := tree.AnagramsWithUnknown(word, op.minUnknown, op.maxUnknown)
+	for _, res := range ana {
+		line := printFiltered(res, op.pattern)
+		if line != "" {
+			fmt.Printf("  %s", line)
+			if op.maxUnknown > 0 {
+				add := util.FindAdditions(runes, res[0], true)
+				if len(add) > 0 {
+					fmt.Printf("  (+%s)", string(add))
+				}
+			}
+			fmt.Print("\n")
+		}
+	}
+}
+
+func printPartial(word string, tree *anagram.Tree, op anagramOptions) {
+	runes := util.UniqueRunes(word, true)
+	ana := tree.PartialAnagramsWithUnknown(word, op.minLength, op.minUnknown, op.maxUnknown)
+	for _, res := range ana {
+		line := printFiltered(res, op.pattern)
+		if line != "" {
+			fmt.Printf("  %s", line)
+			if op.maxUnknown > 0 {
+				add := util.FindAdditions(runes, res[0], true)
+				if len(add) > 0 {
+					fmt.Printf("  (+%s)", string(add))
+				}
+			}
+			fmt.Print("\n")
+		}
+	}
+}
+
+func printMulti(word string, tree *anagram.Tree, op anagramOptions) {
+	ana := tree.MultiAnagrams(word, op.maxWords, op.minLength, false)
+
+	for _, res := range ana {
+		found := op.pattern == nil
+		foundIndex := -1
+		if op.pattern != nil {
+		FindMatch:
+			for b, block := range res {
+				for _, word := range block {
+					if op.pattern.MatchString(word) {
+						found = true
+						foundIndex = b
+						break FindMatch
+					}
+				}
+			}
+		}
+		if !found {
+			continue
+		}
+
+		fmt.Print("  ")
+		for b, block := range res {
+			if b == foundIndex {
+				fmt.Print(printFiltered(block, op.pattern))
+			} else {
+				fmt.Print(strings.Join(block, "  "))
+			}
+			if b < len(res)-1 {
+				fmt.Print("  |  ")
+			}
+		}
+		fmt.Println()
+	}
 }
