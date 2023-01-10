@@ -1,7 +1,6 @@
 package anagram
 
 import (
-	"fmt"
 	"testing"
 	"unicode"
 
@@ -48,7 +47,6 @@ func TestHistogram(t *testing.T) {
 	for _, test := range tt {
 		res := make([]int, len(lettersMap), len(lettersMap))
 		Histogram(test.text, lettersMap, false, res)
-		fmt.Println(res)
 
 		resMap := map[rune]int{}
 		for idx, rn := range revLettersMap {
