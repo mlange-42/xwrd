@@ -231,13 +231,13 @@ func (t *Tree) partialAnagramsWithUnknown(hist []int, minLength, minUnknown, max
 }
 
 // MultiAnagrams finds combinations of partial anagrams
-func (t *Tree) MultiAnagrams(word string, maxWords, minLength uint, perm bool) [][]Leaf {
+func (t *Tree) MultiAnagrams(word string, maxWords, minLength uint, permutations bool) [][]Leaf {
 	word = replacer.Replace(word)
 
 	hist := make([]int, len(t.Letters), len(t.Letters))
 	Histogram(word, t.LettersMap, false, hist)
 
-	tree, indices := t.multiAnagrams(hist, maxWords, minLength, perm)
+	tree, indices := t.multiAnagrams(hist, maxWords, minLength, permutations)
 
 	results := make([][]Leaf, len(indices), len(indices))
 	for i, ind := range indices {
@@ -251,7 +251,7 @@ func (t *Tree) MultiAnagrams(word string, maxWords, minLength uint, perm bool) [
 	return results
 }
 
-func (t *Tree) multiAnagrams(hist []int, maxWords, minLength uint, perm bool) (*Tree, [][]int) {
+func (t *Tree) multiAnagrams(hist []int, maxWords, minLength uint, permutations bool) (*Tree, [][]int) {
 	totalLen := 0
 	for _, c := range hist {
 		totalLen += c
@@ -302,7 +302,7 @@ func (t *Tree) multiAnagrams(hist []int, maxWords, minLength uint, perm bool) (*
 		}
 
 		for _, sub := range subPartials {
-			if !perm && sub < curr[len(curr)-1] {
+			if !permutations && sub < curr[len(curr)-1] {
 				continue
 			}
 			new := []int{}
