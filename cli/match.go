@@ -122,12 +122,10 @@ func createPattern(word string) (*regexp.Regexp, error) {
 
 func findWords(words []string, pattern *regexp.Regexp) []string {
 	results := []string{}
-
 	for _, word := range words {
 		if pattern.MatchString(word) {
 			results = append(results, word)
 		}
 	}
-
 	return results
 }

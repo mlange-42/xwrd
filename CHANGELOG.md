@@ -2,7 +2,9 @@
 
 ## [[unpublished]](https://github.com/mlange-42/xwrd/compare/v0.1.3...main)
 
-Nothing
+### Other
+
+* Added unit tests for the tree data structure and anagrams (#15)
 
 ## [[v0.1.3]](https://github.com/mlange-42/xwrd/compare/v0.1.2...v0.1.3)
 
